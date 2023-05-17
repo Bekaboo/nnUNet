@@ -116,6 +116,8 @@ convert_dataset() {
     #    - BraTS2021_00002.nii.gz
     #    - ...
 
+    rm "${imagesTr}"/* || return 1
+    rm "${labelsTr}"/* || return 1
     for img_subdir in "${TRAINING_DATA}"/*; do
         local img_name=$(basename "${img_subdir}")
         # Linking channel images to imagesTr/
