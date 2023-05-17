@@ -134,6 +134,29 @@ convert_dataset() {
         slink "${gt_file}" "${gt_new_file}" || return 1
     done
 
+    # Creates example dataset.json
+    echo "Making dataset.json..."
+    local num_samples="$(ls ${labelsTr} | wc -l)"
+    local json_str=\
+"{
+    \"channel_names\": {
+        \"0\": \"flair\",
+        \"1\": \"t1\",
+        \"2\": \"t1ce\",
+        \"3\": \"t2\"
+    },
+    \"labels\": {
+        \"background\": 0,
+        \"edema\": 1,
+        \"non_enhancing_and_necrosis\": 2,
+        \"enhancing_tumor\": 3
+    },
+    \"numTraining\": ${num_samples},
+    \"file_ending\": \".nii.gz\"
+}"
+    echo "${json_str}" > "${dataset_json}"
+    echo "  -> ${dataset_json}:"
+    cat "${dataset_json}"
     return 0
 }
 
