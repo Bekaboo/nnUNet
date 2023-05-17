@@ -58,18 +58,17 @@ slink() {
     local file="$1"
     local new_file="$2"
     if [[ -L "${new_file}" ]]; then
-        echo "  -> symlink ${new_file} already exists, skipping"
-    else
-        if [[ -f "${new_file}" ]]; then
-            echo "  -> removing ${new_file}"
-            rm "${new_file}" || return 1
-        elif [[ -d "${new_file}" ]]; then
-            echo "  ERROR: ${new_file} exists and is a directory"
-            return 1
-        fi
-        echo "  -> linking ${file} to ${new_file}"
-        ln -s "${file}" "${new_file}"
+        echo "  -> unlinking ${new_file}"
+        unlink "${new_file}" || return 1
+    elif [[ -f "${new_file}" ]]; then
+        echo "  -> removing ${new_file}"
+        rm "${new_file}" || return 1
+    elif [[ -d "${new_file}" ]]; then
+        echo "  ERROR: ${new_file} exists and is a directory"
+        return 1
     fi
+    echo "  -> linking ${file} to ${new_file}"
+    ln -s "${file}" "${new_file}"
     return 0
 }
 
