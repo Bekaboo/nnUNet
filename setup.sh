@@ -159,13 +159,20 @@ convert_dataset() {
     return 0
 }
 
+verify() {
+    read -p 'Verify dataset integrity? [Y|n] ' -r
+    if [[ ! "${REPLY}" =~ ^[Yy]$ && ! -z "${REPLY}" ]]; then
+        return 0
+    fi
+    nnUNetv2_plan_and_preprocess -d 1 --verify_dataset_integrity || return 1
+    return 0
+}
+
 main() {
     setup_path || return 1
     convert_dataset || return 1
     echo "Conversion done!"
-    echo "Edit dataset.json manually and run" \
-         "'nnUNetv2_plan_and_preprocess -d 1 --verify_dataset_integrity'" \
-         "to ensure that the dataset is setup correctly"
+    verify || return 1
     return 0
 }
 
