@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 # vim:ft=sh:ts=4:sw=4:sts=4:et:
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-SHARED_DIR='/projects/BraTS/BraTS'
-TRAINING_DATA="${SHARED_DIR}/BraTS2021_Training_Data"
-
 ensure_dir() {
     if [[ -f "$1" ]]; then
         "  ERROR: File $1 exsits, cannot make directory"
@@ -37,15 +33,13 @@ ensure_file() {
 
 setup_path() {
     echo 'Setting up path for nnUNet...'
-    local local_data="${SCRIPT_DIR}/data"
+    ensure_dir "${LOCAL_DATA}" || return 1
 
-    ensure_dir "${local_data}" || return 1
-
-    export nnUNet_raw="${local_data}/raw"
+    export nnUNet_raw="${LOCAL_DATA}/raw"
     echo "  -> export nnUNet_raw=${nnUNet_raw}"
-    export nnUNet_preprocessed="${local_data}/preprocessed"
+    export nnUNet_preprocessed="${LOCAL_DATA}/preprocessed"
     echo "  -> export nnUNet_preprocessed=${nnUNet_preprocessed}"
-    export nnUNet_results="${local_data}/results"
+    export nnUNet_results="/tmp/nn_unet_results/"
     echo "  -> export nnUNet_results=${nnUNet_results}"
 
     ensure_dir "${nnUNet_raw}" || return 1
@@ -116,13 +110,17 @@ convert_dataset() {
     #    - BraTS2021_00002.nii.gz
     #    - ...
 
-    rm "${imagesTr}"/* || return 1
-    rm "${labelsTr}"/* || return 1
+    [[ "$(ls -A ${imagesTr})" ]] && {
+        rm "${imagesTr}"/* || return 1
+    }
+    [[ "$(ls -A ${labelsTr})" ]] && {
+        rm "${labelsTr}"/* || return 1
+    }
     for img_subdir in "${TRAINING_DATA}"/*; do
         local img_name=$(basename "${img_subdir}")
         # Linking channel images to imagesTr/
         local channels=('flair' 't1' 't1ce' 't2')
-        for ((i=0; i<${#channels[@]}; i++)); do
+        for ((i = 0; i < ${#channels[@]}; i++)); do
             local channel="${channels[$i]}"
             local img_file="${img_subdir}/${img_name}_${channel}.nii.gz"
             local img_new_name="${img_name}_$(printf "%04d" $i).nii.gz"
@@ -138,8 +136,7 @@ convert_dataset() {
     # Creates example dataset.json
     echo "Making dataset.json..."
     local num_samples="$(ls ${labelsTr} | wc -l)"
-    local json_str=\
-"{
+    local json_str="{
     \"channel_names\": {
         \"0\": \"flair\",
         \"1\": \"t1\",
@@ -171,6 +168,11 @@ verify() {
 }
 
 main() {
+    SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+    SHARED_DIR="${1:-/projects/bbtn/shared_data}"
+    TRAINING_DATA="${SHARED_DIR}/BraTS2021_Training_Data"
+	LOCAL_DATA="${2:-${SCRIPT_DIR}/data}"
+
     setup_path || return 1
     convert_dataset || return 1
     echo "Conversion done!"
