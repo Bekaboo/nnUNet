@@ -119,7 +119,7 @@ convert_dataset() {
     for img_subdir in "${TRAINING_DATA}"/*; do
         local img_name=$(basename "${img_subdir}")
         # Linking channel images to imagesTr/
-        local channels=('flair' 't1' 't1ce' 't2')
+        local channels=('t1' 't1ce' 't2' 'flair')
         for ((i = 0; i < ${#channels[@]}; i++)); do
             local channel="${channels[$i]}"
             local img_file="${img_subdir}/${img_name}_${channel}.nii.gz"
@@ -138,16 +138,16 @@ convert_dataset() {
     local num_samples="$(ls ${labelsTr} | wc -l)"
     local json_str="{
     \"channel_names\": {
-        \"0\": \"flair\",
-        \"1\": \"t1\",
-        \"2\": \"t1ce\",
-        \"3\": \"t2\"
+        \"0\": \"t1\",
+        \"1\": \"t1ce\",
+        \"2\": \"t2\",
+        \"3\": \"flair\"
     },
     \"labels\": {
         \"background\": 0,
-        \"edema\": 1,
-        \"non_enhancing_and_necrosis\": 2,
-        \"enhancing_tumor\": 3
+        \"NCR_NET\": 1,
+        \"ED\": 2,
+        \"ET\": 4
     },
     \"numTraining\": ${num_samples},
     \"file_ending\": \".nii.gz\"
@@ -168,10 +168,10 @@ verify() {
 }
 
 main() {
-    SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+    PROJECT_HOME="/projects/bbtn/${USER}"
     SHARED_DIR="${1:-/projects/bbtn/shared_data}"
     TRAINING_DATA="${SHARED_DIR}/BraTS2021_Training_Data"
-	LOCAL_DATA="${2:-${SCRIPT_DIR}/data}"
+    LOCAL_DATA="${2:-${PROJECT_HOME}/local_data/nn_unet}"
 
     setup_path || return 1
     convert_dataset || return 1
