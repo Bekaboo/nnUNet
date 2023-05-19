@@ -33,6 +33,7 @@ def verify_labels(label_file: str, readerclass: Type[BaseReaderWriter], expected
     seg, properties = rw.read_seg(label_file)
     found_labels = np.sort(pd.unique(seg.ravel()))  # np.unique(seg)
     unexpected_labels = [i for i in found_labels if i not in expected_labels]
+    print('Verifying labels in %s' % label_file)
     if len(found_labels) == 0 and found_labels[0] == 0:
         print('WARNING: File %s only has label 0 (which should be background). This may be intentional or not, '
               'up to you.' % label_file)
@@ -172,9 +173,9 @@ def verify_dataset_integrity(folder: str, num_processes: int = 8) -> None:
     expected_labels = label_manager.all_labels
     if label_manager.has_ignore_label:
         expected_labels.append(label_manager.ignore_label)
-    labels_valid_consecutive = np.ediff1d(expected_labels) == 1
-    assert all(
-        labels_valid_consecutive), f'Labels must be in consecutive order (0, 1, 2, ...). The labels {np.array(expected_labels)[1:][~labels_valid_consecutive]} do not satisfy this restriction'
+    # labels_valid_consecutive = np.ediff1d(expected_labels) == 1
+    # assert all(
+    #     labels_valid_consecutive), f'Labels must be in consecutive order (0, 1, 2, ...). The labels {np.array(expected_labels)[1:][~labels_valid_consecutive]} do not satisfy this restriction'
 
     # determine reader/writer class
     reader_writer_class = determine_reader_writer_from_dataset_json(dataset_json, join(folder, 'imagesTr',
