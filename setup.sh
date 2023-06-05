@@ -67,6 +67,11 @@ slink() {
 }
 
 convert_dataset() {
+    read -p "Convert the dataset? [Y/n] " -r
+    if [[ ! $REPLY =~ ^[Yy]$ && ! -z "${REPLY}" ]]; then
+        echo "  -> Skipping dataset conversion"
+        return 0
+    fi
     echo 'Converting dataset...'
     local imagesTr="${nnUNet_raw}/Dataset001/imagesTr"
     local labelsTr="${nnUNet_raw}/Dataset001/labelsTr"
@@ -127,15 +132,11 @@ convert_dataset() {
             local img_new_file="${imagesTr}/${img_new_name}"
             slink "${img_file}" "${img_new_file}" || return 1
         done
-        # linking ground truth to labelsTr/
-        local gt_file="${img_subdir}/${img_name}_seg.nii.gz"
-        local gt_new_file="${labelsTr}/${img_name}.nii.gz"
-        slink "${gt_file}" "${gt_new_file}" || return 1
     done
 
     # Creates example dataset.json
     echo "Making dataset.json..."
-    local num_samples="$(ls ${labelsTr} | wc -l)"
+    local num_samples="$(ls ${TRAINING_DATA} | wc -l)"
     local json_str="{
     \"channel_names\": {
         \"0\": \"t1\",
@@ -147,7 +148,7 @@ convert_dataset() {
         \"background\": 0,
         \"NCR_NET\": 1,
         \"ED\": 2,
-        \"ET\": 4
+        \"ET\": 3
     },
     \"numTraining\": ${num_samples},
     \"file_ending\": \".nii.gz\"
@@ -158,23 +159,41 @@ convert_dataset() {
     return 0
 }
 
+convert_labels() {
+    read -p "Convert the labels? [Y/n] " -r
+    if [[ ! $REPLY =~ ^[Yy]$ && ! -z "${REPLY}" ]]; then
+        echo "  -> Skipping label conversion"
+        return 0
+    fi
+    echo 'Converting labels in seg images...'
+    python3 convert_seg.py || return 1
+    echo '  -> done!'
+    return 0
+}
+
 verify() {
-    read -p 'Verify dataset integrity? [Y|n] ' -r
+    read -p 'Pre-process dataset? [Y|n] ' -r
     if [[ ! "${REPLY}" =~ ^[Yy]$ && ! -z "${REPLY}" ]]; then
         return 0
     fi
-    nnUNetv2_plan_and_preprocess -d 1 --verify_dataset_integrity || return 1
+    read -p 'Verify dataset integrity? [Y|n] ' -r
+    if [[ ! "${REPLY}" =~ ^[Yy]$ && ! -z "${REPLY}" ]]; then
+        nnUNetv2_plan_and_preprocess -d 1 || return 1
+    else
+        nnUNetv2_plan_and_preprocess -d 1 --verify_dataset_integrity || return 1
+    fi
     return 0
 }
 
 main() {
-    PROJECT_HOME="/projects/bbtn/${USER}"
-    SHARED_DIR="${1:-/projects/bbtn/shared_data}"
+    PROJECT_HOME="/projects/${USER}"
+    SHARED_DIR="${1:-/projects/BraTS/BraTS}"
     TRAINING_DATA="${SHARED_DIR}/BraTS2021_Training_Data"
     LOCAL_DATA="${2:-${PROJECT_HOME}/local_data/nn_unet}"
 
     setup_path || return 1
     convert_dataset || return 1
+    convert_labels || return 1
     echo "Conversion done!"
     verify || return 1
     return 0
